@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>中国象棋</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="board-panel" aria-label="中国象棋棋盘">
+        <div class="board-wrap">
+          <div id="board" class="board"></div>
+        </div>
+      </section>
+
+      <aside class="side-panel">
+        <div class="brand">
+          <div>
+            <p class="eyebrow">Chinese Chess</p>
+            <h1>中国象棋</h1>
+          </div>
+          <div class="settings-corner" aria-label="设置">
+            <button id="soundBtn" class="setting-btn active" type="button">音效 开</button>
+            <button id="voiceBtn" class="setting-btn active" type="button">语音 开</button>
+          </div>
+        </div>
+
+        <div class="status-box">
+          <span id="turnBadge" class="turn-badge red">红方走棋</span>
+          <div class="game-timer">
+            <span>本局用时</span>
+            <strong id="gameTimer">00:00</strong>
+          </div>
+          <p id="message" class="message">请选择红方棋子。</p>
+          <p id="saveStatus" class="save-status">自动保存已开启</p>
+        </div>
+
+        <div class="controls">
+          <h2>机器难度</h2>
+          <div class="difficulty" role="group" aria-label="机器难度">
+            <button class="difficulty-btn active" type="button" data-level="beginner">新手</button>
+            <button class="difficulty-btn" type="button" data-level="amateur">业余</button>
+            <button class="difficulty-btn" type="button" data-level="advanced">进阶</button>
+            <button class="difficulty-btn" type="button" data-level="strong">高手</button>
+            <button class="difficulty-btn" type="button" data-level="master">大师</button>
+          </div>
+          <h2>先手选择</h2>
+          <div class="first-move" role="group" aria-label="先手选择">
+            <button class="first-move-btn active" type="button" data-first="player">玩家先走</button>
+            <button class="first-move-btn" type="button" data-first="computer">机器先走</button>
+          </div>
+          <p id="engineStatus" class="engine-status">内置电脑</p>
+        </div>
+
+        <div class="appearance">
+          <h2>棋盘风格</h2>
+          <div class="theme-picker" role="group" aria-label="棋盘和棋子风格">
+            <button class="theme-btn active" type="button" data-theme="classic">
+              <span class="theme-swatch classic"></span>
+              <span>经典木纹</span>
+            </button>
+            <button class="theme-btn" type="button" data-theme="jade">
+              <span class="theme-swatch jade"></span>
+              <span>青瓷玉盘</span>
+            </button>
+            <button class="theme-btn" type="button" data-theme="ink">
+              <span class="theme-swatch ink"></span>
+              <span>宣纸墨韵</span>
+            </button>
+            <button class="theme-btn" type="button" data-theme="night">
+              <span class="theme-swatch night"></span>
+              <span>玄黑夜战</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="captures">
+          <h2>被吃棋子</h2>
+          <div class="capture-row">
+            <span>红方</span>
+            <div id="redCaptured" class="captured-list"></div>
+          </div>
+          <div class="capture-row">
+            <span>黑方</span>
+            <div id="blackCaptured" class="captured-list"></div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <h2>战绩统计</h2>
+          <div class="stats-grid">
+            <div>
+              <span>玩家胜利</span>
+              <strong id="playerWins">0</strong>
+            </div>
+            <div>
+              <span>电脑胜利</span>
+              <strong id="computerWins">0</strong>
+            </div>
+          </div>
+          <button id="resetStatsBtn" type="button">重置计数</button>
+        </div>
+
+        <div class="actions">
+          <button id="undoBtn" type="button">悔棋</button>
+          <button id="resetBtn" type="button">重开</button>
+        </div>
+      </aside>
+    </main>
+
+    <div id="resultOverlay" class="result-overlay" hidden>
+      <div class="result-dialog" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+        <p id="resultTitle" class="result-title">胜负已定</p>
+        <button id="resultCloseBtn" type="button">继续查看</button>
+      </div>
+    </div>
+
+    <div id="confirmOverlay" class="result-overlay" hidden>
+      <div class="result-dialog confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <p id="confirmTitle" class="confirm-title">确定要重置输赢次数统计吗？</p>
+        <p class="confirm-copy">此操作无法撤销。</p>
+        <div class="confirm-actions">
+          <button id="cancelResetStatsBtn" class="secondary-btn" type="button">取消</button>
+          <button id="confirmResetStatsBtn" type="button">确定重置</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="firstMoveConfirmOverlay" class="result-overlay" hidden>
+      <div class="result-dialog confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="firstMoveConfirmTitle">
+        <p id="firstMoveConfirmTitle" class="confirm-title">切换先手会重开当前棋局</p>
+        <p id="firstMoveConfirmCopy" class="confirm-copy">确定要切换吗？</p>
+        <div class="confirm-actions">
+          <button id="cancelFirstMoveBtn" class="secondary-btn" type="button">取消</button>
+          <button id="confirmFirstMoveBtn" type="button">确定切换</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./game.js"></script>
+  </body>
+</html>

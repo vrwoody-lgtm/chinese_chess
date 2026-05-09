@@ -1,0 +1,40 @@
+# macOS / editor noise
+.DS_Store
+*.swp
+*.swo
+
+# Environment / logs
+.env
+.env.*
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Node dependencies
+node_modules/
+
+# Build output
+dist/
+tauri-web/
+src-tauri/target/
+
+# Electron legacy output
+out/
+release/
+
+# Local extracted engine/source archives
+Pikafish.2026-01-02/
+
+# Generated packages/installers
+*.dmg
+*.msi
+*.exe
+*.app
+*.zip
+
+# Windows engine binary is source asset for this project.
+!engines/pikafish.exe
+
+# Keep source engine folder intentional. The NNUE file is large but required for the app.
