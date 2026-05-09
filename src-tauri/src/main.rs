@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -79,13 +81,24 @@ fn search_best_move(app: AppHandle, payload: EngineRequest) -> EngineResponse {
     let multi_pv = payload.multi_pv.unwrap_or(1).clamp(1, 12);
     let candidate_rank = payload.candidate_rank.unwrap_or(1).clamp(1, multi_pv);
 
-    let mut child = match Command::new(&engine_path)
-        .current_dir(engine_path.parent().unwrap_or_else(|| engine_path.as_path()))
+    let mut command = Command::new(&engine_path);
+    command
+        .current_dir(
+            engine_path
+                .parent()
+                .unwrap_or_else(|| engine_path.as_path()),
+        )
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
+        .stderr(Stdio::piped());
+
+    #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+
+    let mut child = match command.spawn() {
         Ok(child) => child,
         Err(error) => return failure("spawn-failed", vec![error.to_string()], None),
     };
@@ -111,10 +124,16 @@ fn search_best_move(app: AppHandle, payload: EngineRequest) -> EngineResponse {
         "ucci"
     } else if handshake(&mut stdin, &rx, &mut transcript, "uci", "uciok", 4000) {
         if multi_pv > 1 {
-            write_line(&mut stdin, &format!("setoption name MultiPV value {}", multi_pv));
+            write_line(
+                &mut stdin,
+                &format!("setoption name MultiPV value {}", multi_pv),
+            );
         }
         if let Some(path) = network_path.as_ref() {
-            write_line(&mut stdin, &format!("setoption name EvalFile value {}", path.display()));
+            write_line(
+                &mut stdin,
+                &format!("setoption name EvalFile value {}", path.display()),
+            );
         }
         write_line(&mut stdin, "isready");
         let _ = wait_for(&rx, &mut transcript, "readyok", 1800);
@@ -126,9 +145,15 @@ fn search_best_move(app: AppHandle, payload: EngineRequest) -> EngineResponse {
 
     write_line(&mut stdin, &format!("position fen {}", payload.fen.trim()));
     if protocol == "uci" {
-        write_line(&mut stdin, &format!("go depth {} movetime {}", depth, move_time));
+        write_line(
+            &mut stdin,
+            &format!("go depth {} movetime {}", depth, move_time),
+        );
     } else {
-        write_line(&mut stdin, &format!("go depth {} time {}", depth, move_time));
+        write_line(
+            &mut stdin,
+            &format!("go depth {} time {}", depth, move_time),
+        );
     }
 
     let deadline = Instant::now() + Duration::from_millis(move_time + 4000);
@@ -162,7 +187,11 @@ fn search_best_move(app: AppHandle, payload: EngineRequest) -> EngineResponse {
                 }
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => {
-                return failure("engine-output-closed", tail(&transcript, 10), Some(protocol));
+                return failure(
+                    "engine-output-closed",
+                    tail(&transcript, 10),
+                    Some(protocol),
+                );
             }
         }
     }
@@ -267,7 +296,10 @@ fn is_missing_network_line(line: &str) -> bool {
         || lower.contains("must be available")
         || lower.contains("engine will be terminated")
         || lower.contains("downloaded from")
-        || (lower.contains("error") && (lower.contains("evalfile") || lower.contains("network file") || lower.contains("nnue")))
+        || (lower.contains("error")
+            && (lower.contains("evalfile")
+                || lower.contains("network file")
+                || lower.contains("nnue")))
 }
 
 fn failure(reason: &str, details: Vec<String>, protocol: Option<&str>) -> EngineResponse {
@@ -281,7 +313,15 @@ fn failure(reason: &str, details: Vec<String>, protocol: Option<&str>) -> Engine
 }
 
 fn tail(lines: &[String], count: usize) -> Vec<String> {
-    lines.iter().rev().take(count).cloned().collect::<Vec<_>>().into_iter().rev().collect()
+    lines
+        .iter()
+        .rev()
+        .take(count)
+        .cloned()
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect()
 }
 
 fn resolve_engine_path(app: &AppHandle) -> Option<PathBuf> {
@@ -328,7 +368,11 @@ fn engine_roots(app: &AppHandle) -> Vec<PathBuf> {
     }
 
     roots.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("engines"));
-    roots.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("engines"));
+    roots.push(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("engines"),
+    );
 
     if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
         let manifest = PathBuf::from(manifest_dir);
@@ -354,9 +398,23 @@ fn engine_roots(app: &AppHandle) -> Vec<PathBuf> {
 
 fn engine_names_for_platform() -> &'static [&'static str] {
     if cfg!(target_os = "windows") {
-        &["pikafish.exe", "eleeye.exe", "engine.exe", "pikafish", "eleeye", "engine"]
+        &[
+            "pikafish.exe",
+            "eleeye.exe",
+            "engine.exe",
+            "pikafish",
+            "eleeye",
+            "engine",
+        ]
     } else {
-        &["pikafish", "eleeye", "engine", "pikafish.exe", "eleeye.exe", "engine.exe"]
+        &[
+            "pikafish",
+            "eleeye",
+            "engine",
+            "pikafish.exe",
+            "eleeye.exe",
+            "engine.exe",
+        ]
     }
 }
 
