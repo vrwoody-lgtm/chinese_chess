@@ -10,10 +10,11 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri:build:win": "tauri build",
+    "build:win": "tauri build",
     "build:mac": "electron-builder --mac dir",
     "build:mac:dmg": "electron-builder --mac dmg",
     "build:mac:local": "bash scripts/build-mac-local.sh",
-    "build:win": "electron-builder --win portable"
+    "build:win:electron": "electron-builder --win portable"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.2.7",

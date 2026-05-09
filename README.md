@@ -52,4 +52,10 @@ Pikafish 通常使用 UCI 协议，项目会自动兼容 UCI/UCCI。
 npm run build:win
 ```
 
-打包时 `engines/` 会作为额外资源一起带入应用。
+这会走 Tauri 打包链路，避免发布版启动时弹出控制台窗口。打包时 `engines/` 会作为额外资源一起带入应用。
+
+旧的 Electron Windows 打包脚本保留为：
+
+```bash
+npm run build:win:electron
+```
