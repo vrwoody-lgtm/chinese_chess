@@ -10,7 +10,8 @@
     "tauri:build": "tauri build",
     "tauri:build:win": "tauri build",
     "build:win": "tauri build",
-    "build:mac": "tauri build"
+    "build:mac": "tauri build",
+    "build:mac:store": "tauri build --bundles app"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.2.7"
