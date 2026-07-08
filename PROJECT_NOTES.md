@@ -221,6 +221,103 @@ function createInitialState(startWithComputer = false, waitForComputerStart = fa
 
 计时不应从打开程序或新开局开始，而应从第一步真正落子开始。当前 `startedAt` 初始为 `null`，第一次 `makeMove()` 时启动计时。关闭/刷新期间不计入棋局用时。
 
+## Git 版本管理
+
+项目已经开始使用 Git 管理。每台电脑上的本地项目目录可以不同，例如：
+
+- macOS: `/Users/rwoody/local_projects/chinese-chess`
+- Windows: `D:\Projects\chinese-chess`
+
+真正负责同步的是远程仓库，而不是本地路径。当前远程仓库：
+
+```bash
+git@github.com:vrwoody-lgtm/chinese_chess.git
+```
+
+日常推荐流程：
+
+```bash
+git status
+git pull
+# 修改代码或资源
+git add .
+git commit -m "描述本次修改"
+git push
+```
+
+在另一台新电脑上继续开发：
+
+1. 安装 Git、Node.js LTS、Rust/Tauri 所需环境。
+2. 为这台电脑单独创建 SSH key，不建议复制另一台电脑的私钥。
+3. 把 `.pub` 公钥添加到 GitHub。
+4. 测试 SSH：
+
+```bash
+ssh -T git@github.com
+```
+
+5. 克隆项目：
+
+```bash
+git clone git@github.com:vrwoody-lgtm/chinese_chess.git
+cd chinese_chess
+npm install
+```
+
+开发目录建议放在本地磁盘目录，例如 `/Users/rwoody/local_projects/chinese-chess` 或 `D:\Projects\chinese-chess`。尽量避免直接在 OneDrive、iCloud、Dropbox 这类同步目录里开发，防止文件锁、构建缓存和同步冲突影响 Tauri/Rust/npm。
+
+不要提交生成目录和依赖目录，例如 `node_modules/`、`src-tauri/target/`、`dist/`、`tauri-web/`。这些应由 `.gitignore` 排除。
+
+## Git LFS 大文件管理
+
+Git LFS 用来管理大体积二进制文件，例如模型、视频、音频、设计源文件和大型素材。不是项目开始时就必须一次性指定所有 LFS 文件；以后遇到新的大文件类型时再补充规则也可以。
+
+适合放进 LFS 的类型示例：
+
+```bash
+*.nnue
+*.psd
+*.mp4
+*.mov
+*.wav
+*.onnx
+*.pt
+*.bin
+```
+
+安装 Git LFS：
+
+```bash
+# macOS
+brew install git-lfs
+git lfs install
+
+# Windows
+winget install GitHub.GitLFS
+git lfs install
+```
+
+添加 LFS 规则示例：
+
+```bash
+git lfs track "*.nnue"
+git lfs track "*.psd"
+git lfs track "*.mp4"
+git add .gitattributes
+git commit -m "Track large assets with Git LFS"
+```
+
+如果一个大文件还没被普通 Git 提交过，先 `git lfs track` 再 `git add` 是最干净的方式。
+
+如果大文件已经被普通 Git 提交过，之后可以让新版本进入 LFS，但旧的大文件仍然留在 Git 历史里。若要把历史里的旧大文件也迁移到 LFS，需要使用：
+
+```bash
+git lfs migrate import --include="engines/*.nnue"
+git push --force-with-lease
+```
+
+这会重写 Git 历史，其他电脑上的仓库可能需要重新克隆或按 Git LFS 的迁移方式处理，所以要谨慎操作。当前项目里的 `engines/pikafish.nnue` 之前是按普通 Git 文件处理的；如果后续要迁移到 LFS，建议单独安排一次迁移。
+
 ## 新对话接手建议
 
 如果在新的 Codex 对话继续，请先读：
