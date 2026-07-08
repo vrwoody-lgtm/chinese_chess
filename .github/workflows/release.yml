@@ -43,10 +43,7 @@ jobs:
         run: npm run tauri:sync
 
       - name: Build Tauri (Windows)
-        uses: tauri-apps/tauri-action@v1
-        with:
-          tauriScript: npm run tauri:build --
-          args: --bundles msi nsis
+        run: npm run tauri:build -- --bundles msi nsis
 
       - name: List built bundles
         shell: bash
@@ -101,10 +98,7 @@ jobs:
         run: npm run tauri:sync
 
       - name: Build Tauri (macOS)
-        uses: tauri-apps/tauri-action@v1
-        with:
-          tauriScript: npm run tauri:build --
-          args: --bundles app dmg
+        run: npm run tauri:build -- --bundles app dmg
 
       - name: List built bundles
         shell: bash
