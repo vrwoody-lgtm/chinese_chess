@@ -55,7 +55,7 @@ npm install
 npm run tauri:build:win
 ```
 
-注意：`npm run build:win` 是旧 Electron 打包脚本，不是当前 Tauri 主线，不建议使用。
+`npm run build:win` 当前走 Tauri 打包链路。
 
 macOS 正式打包产物通常在：
 
@@ -126,7 +126,7 @@ Windows 打包时确认 `pikafish.exe` 和 `pikafish.nnue` 存在。
 
 1. 最初是普通网页式中国象棋界面，后来加了人机对弈。
 2. 内置 AI 水平太弱，于是接入 Pikafish。
-3. Electron 版体积约 290MB，用户觉得不能接受，因此迁移到 Tauri。
+3. 旧桌面方案体积约 290MB，用户觉得不能接受，因此迁移到 Tauri。
 4. Tauri 版体积明显下降，主要体积来自 `pikafish.nnue`。
 5. 棋盘布局多次调整，最终采用左侧棋盘、右侧信息和控制面板。
 6. 为避免窗口调小后棋盘显示不全，加入动态棋盘尺寸计算。

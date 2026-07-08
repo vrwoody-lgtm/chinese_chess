@@ -791,13 +791,10 @@ async function chooseEngineMove() {
 }
 
 function hasExternalEngineBridge() {
-  return Boolean(window.chessEngine?.getBestMove || window.__TAURI__?.core?.invoke);
+  return Boolean(window.__TAURI__?.core?.invoke);
 }
 
 async function getExternalBestMove(payload) {
-  if (window.chessEngine?.getBestMove) {
-    return window.chessEngine.getBestMove(payload);
-  }
   return window.__TAURI__.core.invoke("get_best_move", { payload });
 }
 
@@ -1433,11 +1430,7 @@ if (restoredNeedsAiMove) {
 async function refreshEngineStatus() {
   if (!hasExternalEngineBridge()) return;
   try {
-    if (window.chessEngine?.getStatus) {
-      engineStatus = await window.chessEngine.getStatus();
-    } else {
-      engineStatus = await window.__TAURI__.core.invoke("get_engine_status");
-    }
+    engineStatus = await window.__TAURI__.core.invoke("get_engine_status");
     render();
   } catch (_error) {
     engineStatus = { available: false, ready: false };

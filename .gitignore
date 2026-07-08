@@ -20,10 +20,6 @@ dist/
 tauri-web/
 src-tauri/target/
 
-# Electron legacy output
-out/
-release/
-
 # Local extracted engine/source archives
 Pikafish.2026-01-02/
 

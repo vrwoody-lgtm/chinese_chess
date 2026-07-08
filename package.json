@@ -2,57 +2,17 @@
   "name": "chinese-chess",
   "version": "0.2.0",
   "private": true,
-  "description": "Chinese chess game with optional UCI/UCCI engine support.",
-  "main": "src/main.js",
+  "description": "Chinese chess game with Tauri-powered UCI/UCCI engine support.",
   "scripts": {
-    "start": "electron .",
+    "start": "npm run tauri:dev",
     "tauri:sync": "bash scripts/sync-tauri-web.sh",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri:build:win": "tauri build",
     "build:win": "tauri build",
-    "build:mac": "electron-builder --mac dir",
-    "build:mac:dmg": "electron-builder --mac dmg",
-    "build:mac:local": "bash scripts/build-mac-local.sh",
-    "build:win:electron": "electron-builder --win portable"
+    "build:mac": "tauri build"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.2.7",
-    "electron": "^30.5.1",
-    "electron-builder": "^24.13.3"
-  },
-  "build": {
-    "appId": "com.local.chinesechess",
-    "productName": "Chinese Chess",
-    "files": [
-      "index.html",
-      "styles.css",
-      "game.js",
-      "assets/**/*",
-      "src/**/*",
-      "engines/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "engines",
-        "to": "engines",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "win": {
-      "target": "portable"
-    },
-    "mac": {
-      "target": [
-        "dir",
-        "dmg"
-      ],
-      "category": "public.app-category.games",
-      "extendInfo": {
-        "CFBundleDisplayName": "中国象棋"
-      }
-    }
+    "@tauri-apps/cli": "^2.2.7"
   }
 }
