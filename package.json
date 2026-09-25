@@ -4,6 +4,7 @@
   "private": true,
   "description": "Chinese chess game with Tauri-powered UCI/UCCI engine support.",
   "scripts": {
+    "tauri": "tauri",
     "start": "npm run tauri:dev",
     "tauri:sync": "bash scripts/sync-tauri-web.sh",
     "tauri:dev": "tauri dev",

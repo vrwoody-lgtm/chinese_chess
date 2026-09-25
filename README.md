@@ -18,7 +18,8 @@
 ## 仓库结构
 
 - `index.html` / `styles.css` / `game.js`：前端界面、象棋规则、AI 调用、计时与设置
-- `src-tauri/`：Tauri 2 + Rust 后端，负责查找并启动 Pikafish
+- `src-tauri/`：Tauri 2 + Rust 后端；桌面端负责启动 Pikafish，iOS 端负责调用内置原生引擎
+- `src-tauri/native/`：iOS 使用的 Pikafish C++ 源码、静态库构建脚本与 C ABI 桥接
 - `tauri-web/`：Tauri 实际打包用的前端静态目录，由 `npm run tauri:sync` 从根目录同步生成
 - `engines/`：引擎文件（`pikafish`、`pikafish.exe`、`pikafish.nnue`）
 - `assets/voice/`：提示语音（MP3 优先，缺失时回退 WAV）
@@ -41,6 +42,22 @@ npm run tauri:dev
 npm run tauri:sync
 ```
 
+### iOS 第一版
+
+iOS 不启动外部可执行文件，而是把 Pikafish C++ 源码和 `engines/pikafish.nnue` 一起编入 App；桌面端原有的 UCI/UCCI 进程方案保持不变。
+
+在 macOS 上准备 Xcode、Rust iOS target 和 XcodeGen 后，可生成并构建 iOS 工程：
+
+```bash
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+npx tauri ios init --ci --skip-targets-install
+npx tauri ios build --debug --target aarch64-sim --no-sign --ci
+```
+
+真机发布需要 Apple Developer 签名与 provisioning profile；`--no-sign` 仅用于模拟器或本地静态构建检查。
+
+Xcode 27 兼容性：`src-tauri/Cargo.lock` 固定使用包含 Xcode 27 修复的 `swift-rs 1.0.8`。如果重新生成锁文件，请执行 `cargo update --manifest-path src-tauri/Cargo.toml -p swift-rs --precise 1.0.8`，不要回退到 1.0.7。
+
 ## 本地打包
 
 ```bash
@@ -57,6 +74,12 @@ macOS 免费发布候选包（仅产出 `.app`）：
 
 ```bash
 npm run build:mac:store
+```
+
+Mac App Store 上传包使用商店分发签名，本机直接安装后可能无法打开。本机安装测试请使用 local test 包：
+
+```bash
+bash scripts/package-mac-local-test.sh
 ```
 
 ## 接入 UCCI / UCI 引擎
@@ -108,6 +131,8 @@ bash scripts/publish-release.sh v0.2.x   # 需 gh auth login
 ## 第三方声明与许可
 
 `engines/pikafish` 与 `engines/pikafish.exe` 按 GPLv3 分发；`engines/pikafish.nnue` 有单独的 NNUE 许可声明；完整声明见 `legal/Pikafish-GPLv3.txt`、`legal/Pikafish-NNUE-License.md` 与 `THIRD_PARTY_NOTICES.md`。**免费发布时请保持无广告、无内购、无付费解锁，并随包保留以上第三方声明。**
+
+iOS 静态集成使用 `src-tauri/native/pikafish-source/` 中固定版本的 Pikafish C++ 源码，并随源码保留 `Copying.txt`。商业化或 App Store 付费发布前，需要先取得 Pikafish 上游的商业授权，并按 GPLv3 与 NNUE 许可要求完成随包声明。
 
 ## macOS 免费发布额外说明
 

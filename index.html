@@ -2,11 +2,16 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>中国象棋</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <div id="bootFallback" class="boot-fallback" role="status" aria-live="polite">
+      <strong>中国象棋正在启动...</strong>
+      <span>请稍候。</span>
+    </div>
+
     <main class="app">
       <section class="board-panel" aria-label="中国象棋棋盘">
         <div class="board-wrap">
@@ -32,74 +37,121 @@
             <span>本局用时</span>
             <strong id="gameTimer">00:00</strong>
           </div>
-          <p id="message" class="message">请选择红方棋子。</p>
+          <button id="message" class="message" type="button" aria-expanded="false">
+            <span class="message-label">最近一步</span>
+            <span id="messageText" class="message-text">请选择红方棋子。</span>
+            <span class="message-chevron" aria-hidden="true">⌄</span>
+          </button>
           <p id="saveStatus" class="save-status">自动保存已开启</p>
         </div>
 
-        <div class="controls">
-          <h2>机器难度</h2>
-          <div class="difficulty" role="group" aria-label="机器难度">
-            <button class="difficulty-btn active" type="button" data-level="beginner">新手</button>
-            <button class="difficulty-btn" type="button" data-level="amateur">业余</button>
-            <button class="difficulty-btn" type="button" data-level="advanced">进阶</button>
-            <button class="difficulty-btn" type="button" data-level="strong">高手</button>
-            <button class="difficulty-btn" type="button" data-level="master">大师</button>
-          </div>
-          <h2>先手选择</h2>
-          <div class="first-move" role="group" aria-label="先手选择">
-            <button class="first-move-btn active" type="button" data-first="player">玩家先走</button>
-            <button class="first-move-btn" type="button" data-first="computer">机器先走</button>
-          </div>
-          <p id="engineStatus" class="engine-status">内置电脑</p>
+        <div id="mobileNewGameSheet" class="mobile-sheet mobile-new-game-sheet">
+          <button class="mobile-sheet-backdrop" type="button" aria-label="关闭新对局设置"></button>
+          <section class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="newGameSheetTitle">
+            <div class="mobile-sheet-header">
+              <div>
+                <p class="mobile-sheet-kicker">开始一局新的对弈</p>
+                <h2 id="newGameSheetTitle">新对局</h2>
+              </div>
+              <button class="sheet-close-btn" type="button" data-close-sheet="new">关闭</button>
+            </div>
+            <p class="mobile-sheet-copy">选择本局的机器难度和先手方。</p>
+
+            <div class="controls">
+              <h2>机器难度</h2>
+              <div class="difficulty" role="group" aria-label="机器难度">
+                <button class="difficulty-btn active" type="button" data-level="beginner">新手</button>
+                <button class="difficulty-btn" type="button" data-level="amateur">业余</button>
+                <button class="difficulty-btn" type="button" data-level="advanced">进阶</button>
+                <button class="difficulty-btn" type="button" data-level="strong">高手</button>
+                <button class="difficulty-btn" type="button" data-level="master">大师</button>
+              </div>
+              <h2>先手选择</h2>
+              <div class="first-move" role="group" aria-label="先手选择">
+                <button class="first-move-btn active" type="button" data-first="player">玩家先走</button>
+                <button class="first-move-btn" type="button" data-first="computer">机器先走</button>
+              </div>
+            </div>
+
+            <div class="mobile-sheet-actions">
+              <button id="mobileStartNewGameBtn" type="button">开始新对局</button>
+            </div>
+          </section>
         </div>
 
-        <div class="appearance">
-          <h2>棋盘风格</h2>
-          <div class="theme-picker" role="group" aria-label="棋盘和棋子风格">
-            <button class="theme-btn active" type="button" data-theme="classic">
-              <span class="theme-swatch classic"></span>
-              <span>经典木纹</span>
-            </button>
-            <button class="theme-btn" type="button" data-theme="jade">
-              <span class="theme-swatch jade"></span>
-              <span>青瓷玉盘</span>
-            </button>
-            <button class="theme-btn" type="button" data-theme="ink">
-              <span class="theme-swatch ink"></span>
-              <span>宣纸墨韵</span>
-            </button>
-            <button class="theme-btn" type="button" data-theme="night">
-              <span class="theme-swatch night"></span>
-              <span>玄黑夜战</span>
-            </button>
-          </div>
+        <div id="mobileMoreSheet" class="mobile-sheet mobile-more-sheet">
+          <button class="mobile-sheet-backdrop" type="button" aria-label="关闭更多设置"></button>
+          <section class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="moreSheetTitle">
+            <div class="mobile-sheet-header">
+              <div>
+                <p class="mobile-sheet-kicker">偏好与本局管理</p>
+                <h2 id="moreSheetTitle">更多</h2>
+              </div>
+              <button class="sheet-close-btn" type="button" data-close-sheet="more">关闭</button>
+            </div>
+
+            <p class="mobile-sheet-section-label">外观设置</p>
+            <div class="appearance">
+              <h2>棋盘风格</h2>
+              <div class="theme-picker" role="group" aria-label="棋盘和棋子风格">
+                <button class="theme-btn active" type="button" data-theme="classic">
+                  <span class="theme-swatch classic"></span>
+                  <span>经典木纹</span>
+                </button>
+                <button class="theme-btn" type="button" data-theme="jade">
+                  <span class="theme-swatch jade"></span>
+                  <span>青瓷玉盘</span>
+                </button>
+                <button class="theme-btn" type="button" data-theme="ink">
+                  <span class="theme-swatch ink"></span>
+                  <span>宣纸墨韵</span>
+                </button>
+                <button class="theme-btn" type="button" data-theme="night">
+                  <span class="theme-swatch night"></span>
+                  <span>玄黑夜战</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="stats">
+              <h2>战绩统计</h2>
+              <div class="stats-grid">
+                <div>
+                  <span>玩家胜利</span>
+                  <strong id="playerWins">0</strong>
+                </div>
+                <div>
+                  <span>电脑胜利</span>
+                  <strong id="computerWins">0</strong>
+                </div>
+              </div>
+              <button id="resetStatsBtn" type="button">重置计数</button>
+            </div>
+
+            <div class="mobile-more-actions">
+              <button id="mobileRestartBtn" type="button">重开当前棋局</button>
+              <p>沿用当前难度和先手设置。</p>
+            </div>
+          </section>
         </div>
 
         <div class="captures">
-          <h2>被吃棋子</h2>
-          <div class="capture-row">
-            <span>红方</span>
-            <div id="redCaptured" class="captured-list"></div>
-          </div>
-          <div class="capture-row">
-            <span>黑方</span>
-            <div id="blackCaptured" class="captured-list"></div>
-          </div>
-        </div>
-
-        <div class="stats">
-          <h2>战绩统计</h2>
-          <div class="stats-grid">
-            <div>
-              <span>玩家胜利</span>
-              <strong id="playerWins">0</strong>
+          <button id="capturesToggle" class="mobile-section-toggle" type="button" aria-expanded="false">
+            <span>被吃棋子</span>
+            <span id="captureSummary" class="capture-summary">暂无</span>
+            <span class="section-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <h2 class="desktop-section-title">被吃棋子</h2>
+          <div id="capturesContent" class="captures-content">
+            <div class="capture-row">
+              <span>红方</span>
+              <div id="redCaptured" class="captured-list"></div>
             </div>
-            <div>
-              <span>电脑胜利</span>
-              <strong id="computerWins">0</strong>
+            <div class="capture-row">
+              <span>黑方</span>
+              <div id="blackCaptured" class="captured-list"></div>
             </div>
           </div>
-          <button id="resetStatsBtn" type="button">重置计数</button>
         </div>
 
         <div class="actions">
@@ -108,6 +160,12 @@
         </div>
       </aside>
     </main>
+
+    <nav id="mobileActionBar" class="mobile-action-bar" aria-label="对局操作">
+      <button id="mobileUndoBtn" type="button">悔棋</button>
+      <button id="mobileNewGameBtn" type="button">新对局</button>
+      <button id="mobileMoreBtn" type="button">更多</button>
+    </nav>
 
     <div id="resultOverlay" class="result-overlay" hidden>
       <div class="result-dialog" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
@@ -138,6 +196,38 @@
       </div>
     </div>
 
+    <script>
+      (function () {
+        var fallback = document.getElementById("bootFallback");
+        function setFallback(message, detail, isError) {
+          if (!fallback) return;
+          fallback.classList.remove("hidden");
+          fallback.classList.toggle("error", Boolean(isError));
+          fallback.innerHTML = "";
+          var title = document.createElement("strong");
+          title.textContent = message;
+          fallback.appendChild(title);
+          if (detail) {
+            var copy = document.createElement("span");
+            copy.textContent = detail;
+            fallback.appendChild(copy);
+          }
+        }
+        window.__hideBootFallback = function () {
+          if (fallback) fallback.classList.add("hidden");
+        };
+        window.__showBootError = function (detail) {
+          setFallback("启动失败", detail || "请退出后重新打开应用。", true);
+        };
+        window.addEventListener("error", function (event) {
+          window.__showBootError(event.message || "脚本加载失败。");
+        });
+        window.addEventListener("unhandledrejection", function (event) {
+          var reason = event.reason && (event.reason.message || String(event.reason));
+          window.__showBootError(reason || "初始化任务失败。");
+        });
+      })();
+    </script>
     <script src="./game.js"></script>
   </body>
 </html>

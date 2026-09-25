@@ -37,7 +37,6 @@
     ],
     "resources": [
       "../engines/pikafish",
-      "../engines/pikafish.exe",
       "../engines/pikafish.nnue",
       "../legal/Pikafish-GPLv3.txt",
       "../legal/Pikafish-NNUE-License.md",
@@ -45,8 +44,12 @@
     ],
     "category": "Game",
     "macOS": {
+      "bundleVersion": "0.2.5",
       "entitlements": "entitlements.mac.plist",
       "minimumSystemVersion": "12.0"
+    },
+    "iOS": {
+      "minimumSystemVersion": "15.0"
     }
   }
 }

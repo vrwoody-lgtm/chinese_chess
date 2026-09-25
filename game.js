@@ -1,5 +1,6 @@
 const boardEl = document.querySelector("#board");
 const messageEl = document.querySelector("#message");
+const messageTextEl = document.querySelector("#messageText");
 const turnBadgeEl = document.querySelector("#turnBadge");
 const gameTimerEl = document.querySelector("#gameTimer");
 const redCapturedEl = document.querySelector("#redCaptured");
@@ -9,7 +10,6 @@ const resetBtn = document.querySelector("#resetBtn");
 const difficultyBtns = document.querySelectorAll(".difficulty-btn");
 const firstMoveBtns = document.querySelectorAll(".first-move-btn");
 const themeBtns = document.querySelectorAll(".theme-btn");
-const engineStatusEl = document.querySelector("#engineStatus");
 const saveStatusEl = document.querySelector("#saveStatus");
 const soundBtn = document.querySelector("#soundBtn");
 const voiceBtn = document.querySelector("#voiceBtn");
@@ -26,6 +26,17 @@ const confirmFirstMoveBtn = document.querySelector("#confirmFirstMoveBtn");
 const playerWinsEl = document.querySelector("#playerWins");
 const computerWinsEl = document.querySelector("#computerWins");
 const resetStatsBtn = document.querySelector("#resetStatsBtn");
+const capturesEl = document.querySelector(".captures");
+const capturesToggle = document.querySelector("#capturesToggle");
+const capturesContent = document.querySelector("#capturesContent");
+const captureSummaryEl = document.querySelector("#captureSummary");
+const mobileNewGameSheet = document.querySelector("#mobileNewGameSheet");
+const mobileMoreSheet = document.querySelector("#mobileMoreSheet");
+const mobileStartNewGameBtn = document.querySelector("#mobileStartNewGameBtn");
+const mobileRestartBtn = document.querySelector("#mobileRestartBtn");
+const mobileUndoBtn = document.querySelector("#mobileUndoBtn");
+const mobileNewGameBtn = document.querySelector("#mobileNewGameBtn");
+const mobileMoreBtn = document.querySelector("#mobileMoreBtn");
 
 const files = 9;
 const ranks = 10;
@@ -81,7 +92,6 @@ let aiLevel = "beginner";
 let aiThinking = false;
 let lastAiMove = null;
 let engineStatus = { available: false, ready: false };
-let lastEngineReply = "";
 let lastEngineFailure = "";
 let soundEnabled = true;
 let voiceEnabled = true;
@@ -89,6 +99,10 @@ let boardTheme = "classic";
 let computerFirst = false;
 let awaitingComputerStart = false;
 let pendingComputerFirst = null;
+let mobileDraftAiLevel = aiLevel;
+let mobileDraftComputerFirst = computerFirst;
+let messageExpanded = false;
+let capturesExpanded = false;
 let audioContext = null;
 let stats = loadStats();
 let timerInterval = null;
@@ -110,16 +124,25 @@ const voiceFallbackFiles = {
 
 let restoredNeedsAiMove = false;
 
+function isPhoneLayout() {
+  return typeof window !== "undefined" && (
+    window.innerWidth <= 600 || (window.innerWidth <= 900 && window.innerHeight <= 500)
+  );
+}
+
 function fitBoardToViewport() {
   const narrow = window.innerWidth <= 900;
+  const phone = isPhoneLayout();
   const widthBudget = narrow
-    ? window.innerWidth - 32
+    ? window.innerWidth - (phone ? 16 : 32)
     : window.innerWidth - layout.appPadding - layout.desktopGap - layout.sideWidth - layout.boardPanelPadding;
   const heightBudget = narrow
-    ? (window.innerHeight - 116) / layout.boardAspectHeight
+    ? (window.innerHeight - (phone ? 136 : 116)) / layout.boardAspectHeight
     : (window.innerHeight - layout.appPadding - layout.boardPanelPadding - 34) / layout.boardAspectHeight;
   const preferred = Math.floor(Math.min(widthBudget, heightBudget, layout.maxBoard));
-  const size = Math.max(320, Math.min(layout.maxBoard, preferred || layout.minBoard));
+  const size = phone
+    ? Math.max(220, Math.min(widthBudget, preferred || widthBudget))
+    : Math.max(320, Math.min(layout.maxBoard, preferred || layout.minBoard));
   document.documentElement.style.setProperty("--board-size", `${size}px`);
 }
 
@@ -143,6 +166,7 @@ function createInitialState(startWithComputer = false, waitForComputerStart = fa
     message: waitForComputerStart
       ? "点击“机器先走”开始新局。"
       : (startWithComputer ? `机器正在思考（${aiNames[aiLevel]}）。` : "请选择红方棋子。"),
+    lastMoveText: "",
     captured: { red: [], black: [] },
     pieces: pieces.map(([color, type, x, y], index) => ({
       id: `${color}-${type}-${index}`,
@@ -163,6 +187,7 @@ function cloneState(source, includeCurrentElapsed = false) {
     startedAt: source.startedAt,
     elapsedMs: includeCurrentElapsed ? currentElapsedMs(source) : source.elapsedMs,
     message: source.message,
+    lastMoveText: source.lastMoveText || "",
     captured: {
       red: [...source.captured.red],
       black: [...source.captured.black],
@@ -221,6 +246,7 @@ function normalizeSavedState(savedState) {
     startedAt: !winner && startedAt ? Date.now() : startedAt,
     elapsedMs,
     message: typeof savedState.message === "string" ? savedState.message : "请选择红方棋子。",
+    lastMoveText: typeof savedState.lastMoveText === "string" ? savedState.lastMoveText : "",
     captured: {
       red: Array.isArray(savedState.captured?.red) ? savedState.captured.red : [],
       black: Array.isArray(savedState.captured?.black) ? savedState.captured.black : [],
@@ -240,8 +266,14 @@ function currentElapsedMs(currentState = state) {
 }
 
 function freezeElapsed(currentState = state) {
-  currentState.elapsedMs = currentElapsedMs(currentState);
-  currentState.startedAt = Number.isFinite(currentState.startedAt) ? Date.now() : null;
+  const base = Number.isFinite(currentState.elapsedMs) ? currentState.elapsedMs : 0;
+  const startedAt = currentState.startedAt;
+  currentState.elapsedMs = Number.isFinite(startedAt)
+    ? base + Math.max(0, Date.now() - startedAt)
+    : base;
+  currentState.startedAt = currentState.winner
+    ? null
+    : (Number.isFinite(startedAt) ? Date.now() : null);
 }
 
 function resumeElapsed(currentState = state) {
@@ -352,12 +384,20 @@ function render() {
     boardEl.append(pieceEl);
   }
 
-  messageEl.textContent = state.message;
-  turnBadgeEl.textContent = state.winner ? `${colorName(state.winner)}胜` : `${colorName(state.turn)}走棋`;
+  messageTextEl.textContent = isPhoneLayout() && state.lastMoveText ? state.lastMoveText : state.message;
+  messageEl.classList.toggle("expanded", messageExpanded);
+  messageEl.setAttribute("aria-expanded", String(messageExpanded));
+  turnBadgeEl.textContent = isPhoneLayout() && aiThinking
+    ? "电脑思考中"
+    : (state.winner ? `${colorName(state.winner)}胜` : `${colorName(state.turn)}走棋`);
   turnBadgeEl.className = `turn-badge ${state.winner || state.turn}`;
   undoBtn.disabled = history.length === 0;
-  difficultyBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.level === aiLevel));
-  firstMoveBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.first === (computerFirst ? "computer" : "player")));
+  if (mobileUndoBtn) mobileUndoBtn.disabled = history.length === 0 || aiThinking;
+  const draftOpen = isPhoneLayout() && mobileNewGameSheet?.classList.contains("is-open");
+  const selectedAiLevel = draftOpen ? mobileDraftAiLevel : aiLevel;
+  const selectedComputerFirst = draftOpen ? mobileDraftComputerFirst : computerFirst;
+  difficultyBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.level === selectedAiLevel));
+  firstMoveBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.first === (selectedComputerFirst ? "computer" : "player")));
   themeBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.theme === boardTheme));
   document.body.dataset.theme = boardTheme;
   soundBtn.textContent = soundEnabled ? "音效 开" : "音效 关";
@@ -367,14 +407,6 @@ function render() {
   gameTimerEl.textContent = formatElapsed(currentElapsedMs(state));
   playerWinsEl.textContent = stats.playerWins;
   computerWinsEl.textContent = stats.computerWins;
-  if (engineStatus.ready) {
-    const network = engineStatus.networkPath ? "，NNUE 已加载" : "";
-    engineStatusEl.textContent = `${String(engineStatus.protocol || "UCCI").toUpperCase()} 引擎已启动${network}`;
-  } else if (engineStatus.available) {
-    engineStatusEl.textContent = "已找到引擎，等待首次启动";
-  } else {
-    engineStatusEl.textContent = "内置电脑";
-  }
   renderCaptured();
 }
 
@@ -445,6 +477,13 @@ function renderCaptured() {
   blackCapturedEl.innerHTML = "";
   for (const piece of state.captured.red) redCapturedEl.append(createCapturedPiece(piece));
   for (const piece of state.captured.black) blackCapturedEl.append(createCapturedPiece(piece));
+  if (captureSummaryEl) {
+    const total = state.captured.red.length + state.captured.black.length;
+    captureSummaryEl.textContent = total ? `共 ${total} 枚` : "暂无";
+  }
+  if (capturesEl) capturesEl.classList.toggle("is-expanded", capturesExpanded);
+  if (capturesToggle) capturesToggle.setAttribute("aria-expanded", String(capturesExpanded));
+  if (capturesContent) capturesContent.setAttribute("aria-hidden", String(isPhoneLayout() && !capturesExpanded));
 }
 
 function createCapturedPiece(piece) {
@@ -500,6 +539,7 @@ function makeMove(pieceId, x, y, saveHistory) {
   const piece = pieceById(pieceId);
   if (!piece) return;
   const captured = pieceAt(x, y);
+  const mover = state.turn;
   if (saveHistory) history.push(cloneState(state, true));
   startElapsedIfNeeded();
 
@@ -513,13 +553,15 @@ function makeMove(pieceId, x, y, saveHistory) {
   selected = null;
   legalTargets = [];
 
-  const mover = state.turn;
   const opponent = opposite(mover);
+  let lastMoveText = `${colorName(mover)}走了${pieceNames[piece.color][piece.type]}到 ${x + 1} 路 ${y + 1} 线`;
+  if (captured) lastMoveText += `，吃掉${pieceNames[captured.color][captured.type]}`;
   let sound = captured ? "capture" : "move";
   if (captured?.type === "general") {
     state.winner = mover;
     freezeElapsed();
     state.message = `${colorName(mover)}吃掉主帅，获胜。`;
+    lastMoveText += `，${colorName(mover)}获胜`;
     sound = "win";
   } else {
     state.turn = opponent;
@@ -529,19 +571,23 @@ function makeMove(pieceId, x, y, saveHistory) {
       state.winner = opposite(opponent);
       freezeElapsed();
       state.message = `将死，${colorName(state.winner)}获胜。`;
+      lastMoveText += `，将死，${colorName(state.winner)}获胜`;
       sound = "win";
     } else if (checked) {
       state.message = `${colorName(opponent)}被将军。`;
+      lastMoveText += `，${colorName(opponent)}被将军`;
       sound = "check";
     } else if (!canMove) {
       state.winner = opposite(opponent);
       freezeElapsed();
       state.message = `${colorName(opponent)}无棋可走，${colorName(state.winner)}获胜。`;
+      lastMoveText += `，${colorName(state.winner)}获胜`;
       sound = "win";
     } else {
       state.message = state.turn === "black" ? `机器正在思考（${aiNames[aiLevel]}）。` : `轮到${colorName(state.turn)}。`;
     }
   }
+  state.lastMoveText = `${lastMoveText}。`;
 
   playSound(sound);
   recordWinnerIfNeeded();
@@ -715,8 +761,10 @@ function queueAiMove() {
     const checkedRed = !state.winner && isInCheck("red", state);
     const aiWon = state.winner === "black";
     if (movedPiece && !state.winner) {
-      const source = move.source === "engine" ? "引擎" : "内置电脑";
-      const note = move.fallbackReason ? `（${move.fallbackReason}）` : "";
+      const source = move.source === "engine" ? "高级电脑方" : "内置电脑";
+      const note = move.fallbackReason
+        ? `（${move.fallbackReason.replace(/[。！？]$/, "")}）`
+        : "";
       const action = aiMoveActionText(movedPiece, capturedByAi, checkedRed, aiWon);
       state.message = `${source}${action}到 ${move.x + 1} 路 ${move.y + 1} 线${note}。轮到红方。`;
       refreshEngineStatus();
@@ -733,9 +781,7 @@ async function chooseAiMove() {
 
   const expectedEngine = Boolean(engineProfiles[aiLevel]);
   if (expectedEngine && engineStatus.available) {
-    state.message = lastEngineFailure || (lastEngineReply
-      ? `引擎返回 ${lastEngineReply}，当前坐标无法落子，已临时使用内置电脑。`
-      : "引擎没有返回可用走法，已临时使用内置电脑。");
+    state.message = lastEngineFailure || "高级电脑方暂时无法提供走法，已切换到内置电脑。";
     render();
   }
 
@@ -743,14 +789,14 @@ async function chooseAiMove() {
   if (!moves.length) return null;
 
   if (aiLevel === "beginner") {
-    return withFallbackReason(pickHumanLikeMove(moves, aiProfiles.beginner), lastEngineFailure || "外部引擎不可用");
+    return withFallbackReason(pickHumanLikeMove(moves, aiProfiles.beginner), lastEngineFailure || "高级电脑方暂时不可用，已切换到内置电脑。");
   }
 
   if (aiLevel === "amateur") {
-    return withFallbackReason(bestMoveByScore(moves, aiProfiles.amateur), lastEngineFailure || "外部引擎不可用");
+    return withFallbackReason(bestMoveByScore(moves, aiProfiles.amateur), lastEngineFailure || "高级电脑方暂时不可用，已切换到内置电脑。");
   }
 
-  return withFallbackReason(bestMoveByScore(moves, aiProfiles[aiLevel]), lastEngineFailure || "外部引擎不可用");
+  return withFallbackReason(bestMoveByScore(moves, aiProfiles[aiLevel]), lastEngineFailure || "高级电脑方暂时不可用，已切换到内置电脑。");
 }
 
 async function chooseEngineMove() {
@@ -768,24 +814,27 @@ async function chooseEngineMove() {
       multiPv: profile.multiPv,
       candidateRank: profile.candidateRank,
     });
-    lastEngineReply = result?.bestMove || result?.reason || "";
     if (!result?.ok || !result.bestMove) {
-      const details = Array.isArray(result?.details) && result.details.length
-        ? `：${result.details.slice(-3).join(" / ")}`
-        : "";
-      const reason = result?.reason === "missing-network"
-        ? "缺少 pikafish.nnue 评估文件"
-        : (result?.reason || "unknown");
-      lastEngineFailure = `引擎未给出 bestmove（${reason}${details}），已临时使用内置电脑。`;
+      lastEngineFailure = result?.reason === "invalid-position"
+        ? "当前棋局状态需要重新开始，已切换到内置电脑。"
+        : result?.reason === "missing-network"
+          ? "高级电脑方暂时不可用，已切换到内置电脑。"
+          : "高级电脑方暂时无法提供走法，已切换到内置电脑。";
       return null;
     }
+    engineStatus = {
+      ...engineStatus,
+      available: true,
+      ready: true,
+      protocol: result.protocol || engineStatus.protocol || "uci",
+    };
     const move = engineMoveToLocalMove(result.bestMove);
     if (!move) {
-      lastEngineFailure = `引擎返回 ${result.bestMove}，但无法匹配当前黑方合法走法，已临时使用内置电脑。`;
+      lastEngineFailure = "高级电脑方返回的走法暂时无法使用，已切换到内置电脑。";
     }
     return move;
-  } catch (error) {
-    lastEngineFailure = `引擎启动或通信失败：${error?.message || error}。已临时使用内置电脑。`;
+  } catch {
+    lastEngineFailure = "高级电脑方暂时不可用，已切换到内置电脑。";
     return null;
   }
 }
@@ -1260,6 +1309,42 @@ function hideFirstMoveConfirm() {
   firstMoveConfirmOverlay.hidden = true;
 }
 
+function setMobileSheetOpen(sheet, open) {
+  if (!sheet) return;
+  sheet.classList.toggle("is-open", open);
+  sheet.setAttribute("aria-hidden", String(!open));
+  document.body.classList.toggle("sheet-open", Boolean(
+    mobileNewGameSheet?.classList.contains("is-open") || mobileMoreSheet?.classList.contains("is-open"),
+  ));
+}
+
+function closeMobileSheets() {
+  setMobileSheetOpen(mobileNewGameSheet, false);
+  setMobileSheetOpen(mobileMoreSheet, false);
+}
+
+function openMobileNewGameSheet() {
+  mobileDraftAiLevel = aiLevel;
+  mobileDraftComputerFirst = computerFirst;
+  setMobileSheetOpen(mobileMoreSheet, false);
+  setMobileSheetOpen(mobileNewGameSheet, true);
+  render();
+}
+
+function openMobileMoreSheet() {
+  setMobileSheetOpen(mobileNewGameSheet, false);
+  setMobileSheetOpen(mobileMoreSheet, true);
+  render();
+}
+
+function startMobileNewGame() {
+  aiLevel = mobileDraftAiLevel;
+  computerFirst = mobileDraftComputerFirst;
+  closeMobileSheets();
+  startNewGame();
+  if (computerFirst) startComputerFirstMove();
+}
+
 function startNewGame() {
   aiThinking = false;
   awaitingComputerStart = computerFirst;
@@ -1326,6 +1411,30 @@ function soundNotes(type) {
   return sounds[type] || sounds.move;
 }
 
+messageEl.addEventListener("click", () => {
+  if (!isPhoneLayout()) return;
+  messageExpanded = !messageExpanded;
+  render();
+});
+
+capturesToggle.addEventListener("click", () => {
+  capturesExpanded = !capturesExpanded;
+  renderCaptured();
+});
+
+document.querySelectorAll(".mobile-sheet-backdrop, .sheet-close-btn").forEach((button) => {
+  button.addEventListener("click", closeMobileSheets);
+});
+
+mobileUndoBtn.addEventListener("click", () => undoBtn.click());
+mobileNewGameBtn.addEventListener("click", openMobileNewGameSheet);
+mobileMoreBtn.addEventListener("click", openMobileMoreSheet);
+mobileStartNewGameBtn.addEventListener("click", startMobileNewGame);
+mobileRestartBtn.addEventListener("click", () => {
+  closeMobileSheets();
+  resetBtn.click();
+});
+
 undoBtn.addEventListener("click", () => {
   if (aiThinking) return;
   if (!history.length) return;
@@ -1374,6 +1483,11 @@ voiceBtn.addEventListener("click", () => {
 difficultyBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
     if (aiThinking) return;
+    if (isPhoneLayout() && mobileNewGameSheet?.classList.contains("is-open")) {
+      mobileDraftAiLevel = normalizeAiLevel(btn.dataset.level);
+      render();
+      return;
+    }
     aiLevel = btn.dataset.level;
     state.message = `机器难度已切换为${aiNames[aiLevel]}。`;
     saveGame();
@@ -1385,6 +1499,11 @@ firstMoveBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
     if (aiThinking) return;
     const nextComputerFirst = btn.dataset.first === "computer";
+    if (isPhoneLayout() && mobileNewGameSheet?.classList.contains("is-open")) {
+      mobileDraftComputerFirst = nextComputerFirst;
+      render();
+      return;
+    }
     if (computerFirst === nextComputerFirst) {
       if (nextComputerFirst) startComputerFirstMove();
       return;
@@ -1417,9 +1536,14 @@ window.addEventListener("beforeunload", () => {
   saveGame();
 });
 loadSavedGame();
+if (isPhoneLayout()) {
+  setMobileSheetOpen(mobileNewGameSheet, false);
+  setMobileSheetOpen(mobileMoreSheet, false);
+}
 fitBoardToViewport();
 refreshEngineStatus();
 render();
+if (window.__hideBootFallback) window.__hideBootFallback();
 startTimerTicker();
 if (restoredNeedsAiMove) {
   state.message = "已恢复棋局，电脑继续思考。";
